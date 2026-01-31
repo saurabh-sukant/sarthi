@@ -1,4 +1,5 @@
 import uuid
+import inspect
 from typing import Dict, Any, TypedDict
 from datetime import datetime
 from langgraph.graph import StateGraph, END
@@ -19,6 +20,11 @@ class OrchestratorState(TypedDict):
     reasoning_result: Dict[str, Any]
     generation_result: Dict[str, Any]
     final_response: str
+    # Internal keys
+    masked_query: str
+    retrieved_docs: Any
+    retrieved_memory: Any
+    reasoning_summary: str
 
 class Orchestrator:
     def __init__(self):
@@ -46,19 +52,19 @@ class Orchestrator:
 
         return graph
 
-    def run_query(self, query: str, attachments: list, mode: str) -> Dict[str, Any]:
-        """Run the orchestration workflow."""
+    async def run_query(self, query: str, attachments: list, mode: str) -> Dict[str, Any]:
+        """Run the orchestration workflow asynchronously."""
         execution_id = str(uuid.uuid4())
         conversation_id = str(uuid.uuid4())
 
-        # Create execution record
-        create_execution()
+        # Create execution record (Sync DB call is fine here)
+        create_execution(execution_id=execution_id, conversation_id=conversation_id, query=query)
 
         # Log start
         log_observability_event(datetime.utcnow(), "agent_started", "Orchestrator", "Starting orchestration", execution_id=execution_id)
 
         try:
-            # Run the graph
+            # Prepare initial state with defaults for all keys
             initial_state: OrchestratorState = {
                 "query": query,
                 "execution_id": execution_id,
@@ -68,13 +74,19 @@ class Orchestrator:
                 "retrieval_result": {},
                 "reasoning_result": {},
                 "generation_result": {},
-                "final_response": ""
+                "final_response": "",
+                "masked_query": query,
+                "retrieved_docs": {},
+                "retrieved_memory": {},
+                "reasoning_summary": ""
             }
 
-            result = self.graph.invoke(initial_state)
+            # FIX 1: Use ainvoke (Async Invoke) and await it
+            # This ensures 'result' is a Dictionary, not a Coroutine
+            result = await self.graph.compile().ainvoke(initial_state)
 
             # Update execution status
-            update_execution_status(execution_id, "completed", result.get("final_response"))
+            update_execution_status(execution_id, "completed", result.get("final_response") if isinstance(result, dict) else None)
 
             return {
                 "conversation_id": conversation_id,
@@ -83,18 +95,24 @@ class Orchestrator:
             }
 
         except Exception as e:
+            # Capture errors
             update_execution_status(execution_id, "failed", str(e))
             raise e
 
-    def _input_guardrail(self, state: OrchestratorState) -> OrchestratorState:
-        """Input validation and guardrails."""
+    # FIX 2: All nodes must be 'async def' to handle async agents properly
+    
+    async def _input_guardrail(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
         query = state["query"]
-
         log_observability_event(datetime.utcnow(), "agent_started", "GuardrailAgent", "Validating input", execution_id=execution_id)
 
         guardrail = GuardrailAgent()
-        validation = guardrail.validate_input(query)
+        
+        # Check if validation is async
+        if inspect.iscoroutinefunction(guardrail.validate_input):
+            validation = await guardrail.validate_input(query)
+        else:
+            validation = guardrail.validate_input(query)
 
         if not validation["valid"]:
             raise ValueError(f"Input validation failed: {validation['issues']}")
@@ -103,92 +121,97 @@ class Orchestrator:
         log_observability_event(datetime.utcnow(), "agent_completed", "GuardrailAgent", "Input validation completed", execution_id=execution_id)
         return state
 
-    def _retrieval(self, state: OrchestratorState) -> OrchestratorState:
-        """Retrieve relevant documents and memory."""
+    async def _retrieval(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
-        query = state["masked_query"]
-
-        log_observability_event(datetime.utcnow(), "agent_started", "RetrievalAgent", "Retrieving documents and memory", execution_id=execution_id)
+        query = state.get("masked_query", state.get("query"))
+        log_observability_event(datetime.utcnow(), "agent_started", "RetrievalAgent", "Retrieving documents", execution_id=execution_id)
 
         retrieval = RetrievalAgent(execution_id)
-        results = retrieval.retrieve(query)
+        
+        # FIX 3: Await the retrieval agent (since it uses async DB)
+        if inspect.iscoroutinefunction(retrieval.retrieve):
+            results = await retrieval.retrieve(query)
+        else:
+            results = retrieval.retrieve(query)
 
-        state["retrieved_docs"] = results["documents"]
-        state["retrieved_memory"] = results["memory"]
+        state["retrieved_docs"] = results.get("documents", {})
+        state["retrieved_memory"] = results.get("memory", {})
 
         log_observability_event(datetime.utcnow(), "agent_completed", "RetrievalAgent", "Retrieval completed", execution_id=execution_id)
         return state
 
-    def _reasoning(self, state: OrchestratorState) -> OrchestratorState:
-        """Reason over retrieved information."""
+    async def _reasoning(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
-        query = state["masked_query"]
-        docs = state["retrieved_docs"]
-        memory = state["retrieved_memory"]
-
+        query = state.get("masked_query", state.get("query"))
+        docs = state.get("retrieved_docs", {})
+        memory = state.get("retrieved_memory", {})
         log_observability_event(datetime.utcnow(), "agent_started", "ReasoningAgent", "Starting reasoning", execution_id=execution_id)
 
-        # Simple reasoning: combine docs and memory
         context = self._combine_context(docs, memory)
+        reasoning_prompt = f"Query: {query}\nContext: {context[:2000]}\nProvide a brief reasoning summary."
 
-        # Generate reasoning summary
-        reasoning_prompt = f"""
-        Query: {query}
-        Context: {context[:2000]}  # Truncate for token limits
+        # Use async OpenAI call if available, or wrap in executor if blocking
+        try:
+             # Try async call (OpenAI v1+)
+             client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+             response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": reasoning_prompt}],
+                max_tokens=300
+             )
+             state["reasoning_summary"] = response.choices[0].message.content
+        except AttributeError:
+             # Fallback to sync call (older OpenAI)
+             response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": reasoning_prompt}],
+                max_tokens=300
+             )
+             state["reasoning_summary"] = response.choices[0].message.content
 
-        Provide a brief reasoning summary about how to answer this query based on the context.
-        """
-
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": reasoning_prompt}],
-            max_tokens=300
-        )
-
-        state["reasoning_summary"] = response.choices[0].message.content
         log_observability_event(datetime.utcnow(), "agent_completed", "ReasoningAgent", "Reasoning completed", execution_id=execution_id)
         return state
 
-    def _generation(self, state: OrchestratorState) -> OrchestratorState:
-        """Generate final response."""
+    async def _generation(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
-        query = state["masked_query"]
-        reasoning = state["reasoning_summary"]
-        docs = state["retrieved_docs"]
-
+        query = state.get("masked_query", state.get("query"))
+        reasoning = state.get("reasoning_summary", "")
         log_observability_event(datetime.utcnow(), "agent_started", "GeneratorAgent", "Generating response", execution_id=execution_id)
 
-        # Generate response with citations
-        generation_prompt = f"""
-        Query: {query}
-        Reasoning: {reasoning}
+        generation_prompt = f"Query: {query}\nReasoning: {reasoning}\nGenerate a helpful response."
 
-        Generate a helpful response with citations to the source documents.
-        Include specific references to incidents or documents where relevant.
-        """
+        try:
+             client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+             response = await client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": generation_prompt}],
+                max_tokens=500
+             )
+             state["final_response"] = response.choices[0].message.content
+        except AttributeError:
+             response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": generation_prompt}],
+                max_tokens=500
+             )
+             state["final_response"] = response.choices[0].message.content
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": generation_prompt}],
-            max_tokens=500
-        )
-
-        state["final_response"] = response.choices[0].message.content
         log_observability_event(datetime.utcnow(), "agent_completed", "GeneratorAgent", "Response generation completed", execution_id=execution_id)
         return state
 
-    def _output_guardrail(self, state: OrchestratorState) -> OrchestratorState:
-        """Final output validation."""
+    async def _output_guardrail(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
-        response = state["final_response"]
-
+        response = state.get("final_response", "")
         log_observability_event(datetime.utcnow(), "agent_started", "GuardrailAgent", "Validating output", execution_id=execution_id)
 
         guardrail = GuardrailAgent()
-        validation = guardrail.validate_output(response)
+        
+        if inspect.iscoroutinefunction(guardrail.validate_output):
+             validation = await guardrail.validate_output(response)
+        else:
+             validation = guardrail.validate_output(response)
 
         if not validation["valid"]:
-            # Could modify response or escalate
             state["final_response"] = "I apologize, but I cannot provide a response to this query due to safety concerns."
 
         log_observability_event(datetime.utcnow(), "agent_completed", "GuardrailAgent", "Output validation completed", execution_id=execution_id)
@@ -197,15 +220,11 @@ class Orchestrator:
     def _combine_context(self, docs: Dict, memory: Dict) -> str:
         """Combine retrieved documents and memory into context string."""
         context_parts = []
-
-        # Add documents
-        if docs.get("documents"):
+        # Ensure docs/memory are dicts before accessing
+        if isinstance(docs, dict) and docs.get("documents"):
             for i, doc in enumerate(docs["documents"][0]):
                 context_parts.append(f"Document {i+1}: {doc}")
-
-        # Add memory
-        if memory.get("documents"):
+        if isinstance(memory, dict) and memory.get("documents"):
             for i, mem in enumerate(memory["documents"][0]):
                 context_parts.append(f"Memory {i+1}: {mem}")
-
         return "\n".join(context_parts)

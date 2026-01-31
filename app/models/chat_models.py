@@ -8,3 +8,5 @@ class ChatQuery(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     execution_id: str
+    response: str = ""
+    status: str = "completed"

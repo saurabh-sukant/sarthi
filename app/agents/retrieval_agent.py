@@ -8,20 +8,20 @@ class RetrievalAgent:
     def __init__(self, execution_id: str = None):
         self.execution_id = execution_id
 
-    def retrieve(self, query: str, top_k: int = 5, include_memory: bool = True) -> Dict[str, Any]:
+    async def retrieve(self, query: str, top_k: int = 5, include_memory: bool = True) -> Dict[str, Any]:
         """
         Retrieve relevant documents and memory for a query.
         """
         # Generate query embedding
-        query_embedding = get_embedding(query)
+        query_embedding = await get_embedding(query)
 
         # Search documents
-        doc_results = search_documents(query_embedding, n_results=top_k)
+        doc_results = await search_documents(query_embedding, n_results=top_k)
 
         # Search memory if requested
         memory_results = {}
         if include_memory:
-            memory_results = search_memory(query_embedding, n_results=top_k//2)
+            memory_results = await search_memory(query_embedding, n_results=top_k//2)
 
         # Log retrieval event
         if self.execution_id:
@@ -39,11 +39,11 @@ class RetrievalAgent:
             "query": query
         }
 
-    def retrieve_with_filter(self, query: str, filters: Dict[str, Any], top_k: int = 5) -> Dict[str, Any]:
+    async def retrieve_with_filter(self, query: str, filters: Dict[str, Any], top_k: int = 5) -> Dict[str, Any]:
         """
         Retrieve with metadata filters.
         """
         # For now, simple implementation - can be enhanced with ChromaDB filtering
-        results = self.retrieve(query, top_k)
+        results = await self.retrieve(query, top_k)
         # Apply post-filtering if needed
         return results

@@ -27,10 +27,10 @@ class MemoryAgent:
             return memories
         else:
             # Get all memories from DB
-            db_memories = await get_memory_items()
+            db_memories = get_memory_items()
             if memory_type:
-                db_memories = [m for m in db_memories if m.type == memory_type]
-            return [m.dict() for m in db_memories]
+                db_memories = [m for m in db_memories if m.get("type") == memory_type]
+            return db_memories
 
     async def write_memory(self, content: str, memory_type: str, source: str = None) -> str:
         """
