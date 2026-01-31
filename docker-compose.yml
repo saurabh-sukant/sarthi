@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  sarthi-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=sqlite:///./sarthi.db
+      - CHROMA_DB_PATH=./chroma_db
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./chroma_db:/app/chroma_db
+    depends_on:
+      - chroma-db
+    networks:
+      - sarthi-network
+
+  chroma-db:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - sarthi-network
+
+volumes:
+  chroma_data:
+
+networks:
+  sarthi-network:
+    driver: bridge
