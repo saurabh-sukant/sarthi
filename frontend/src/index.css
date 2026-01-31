@@ -1,0 +1,14 @@
+:root{--bg:#f7fafc;--card:#fff;--accent:#2563eb}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg);margin:0}
+.app-root{display:flex;min-height:100vh}
+.app-nav{width:220px;background:var(--card);padding:16px;border-right:1px solid #e6e6e6}
+.app-nav button{display:block;width:100%;margin-bottom:8px;padding:8px;border-radius:6px;border:1px solid #ddd;background:white}
+.app-main{flex:1;padding:20px}
+.chat-root{display:flex;flex-direction:column;gap:12px}
+.messages{flex:1;margin-bottom:8px}
+.message{padding:10px;border-radius:8px;margin-bottom:8px}
+.message.user{background:var(--accent);color:white;text-align:right}
+.message.assistant{background:#fff;border:1px solid #eee}
+.chat-input{display:flex;gap:8px}
+.chat-input input{flex:1;padding:8px}
+.chat-input button{padding:8px 12px}

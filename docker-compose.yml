@@ -3,6 +3,7 @@ version: '3.8'
 services:
   sarthi-api:
     build: .
+    container_name: sarthi-api
     ports:
       - "8000:8000"
     environment:
@@ -17,9 +18,28 @@ services:
       - chroma-db
     networks:
       - sarthi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/agents"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sarthi-frontend:
+    build: ./frontend
+    container_name: sarthi-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://sarthi-api:8000
+    depends_on:
+      sarthi-api:
+        condition: service_healthy
+    networks:
+      - sarthi-network
 
   chroma-db:
     image: chromadb/chroma:latest
+    container_name: chroma-db
     ports:
       - "8001:8000"
     volumes:
