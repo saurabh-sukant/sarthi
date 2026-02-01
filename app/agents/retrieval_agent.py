@@ -15,13 +15,13 @@ class RetrievalAgent:
         # Generate query embedding
         query_embedding = await get_embedding(query)
 
-        # Search documents
-        doc_results = await search_documents(query_embedding, n_results=top_k)
+        # Search documents with fallback to keyword search
+        doc_results = await search_documents(query_embedding, n_results=top_k, query_text=query)
 
         # Search memory if requested
         memory_results = {}
         if include_memory:
-            memory_results = await search_memory(query_embedding, n_results=top_k//2)
+            memory_results = await search_memory(query_embedding, n_results=top_k//2, query_text=query)
 
         # Log retrieval event
         if self.execution_id:
@@ -29,7 +29,7 @@ class RetrievalAgent:
                 datetime.utcnow(),
                 "tool_call",
                 "RetrievalAgent",
-                f"Query: {query}, Docs found: {len(doc_results.get('documents', []))}",
+                f"Query: {query}, Docs found: {len(doc_results.get('documents', []))} Memory items: {len(memory_results.get('documents', []))}",
                 execution_id=self.execution_id
             )
 

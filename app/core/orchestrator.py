@@ -155,8 +155,9 @@ class Orchestrator:
 
         memory_agent = MemoryAgent()
         
-        # Read memories related to the query
-        correlated_memories = await memory_agent.read_memory(query=query, top_k=3)
+        # Read memories related to the query using semantic search
+        # This will return episodic, semantic, AND conversation memories
+        correlated_memories = await memory_agent.read_memory(query=query, top_k=5)
         
         state["correlated_memories"] = correlated_memories
         
@@ -172,7 +173,25 @@ class Orchestrator:
         log_observability_event(datetime.utcnow(), "agent_started", "ReasoningAgent", "Starting reasoning", execution_id=execution_id)
 
         context = self._combine_context(docs, memory, correlated_memories)
-        reasoning_prompt = f"Query: {query}\nContext: {context[:2000]}\nProvide a brief reasoning summary."
+        
+        # DEBUG: Log what context was built
+        if correlated_memories:
+            print(f"\n[DEBUG] Correlated {len(correlated_memories)} memories for context")
+            for mem in correlated_memories[:2]:
+                print(f"  - Type: {mem.get('type')}, Content: {mem.get('content', '')[:100]}")
+        
+        # Enhanced reasoning prompt that explicitly considers conversation history
+        reasoning_prompt = f"""Query: {query}
+
+Context from documents, memories, and conversation history:
+{context[:2000]}
+
+Please provide a brief reasoning summary. Consider:
+1. Any information from the documents
+2. Any relevant memories from past interactions
+3. Any information about the user from the conversation history
+
+Provide your reasoning based on ALL available context, including past conversation history."""
 
         # Use async OpenAI call if available, or wrap in executor if blocking
         try:
@@ -184,14 +203,19 @@ class Orchestrator:
                 max_tokens=300
              )
              state["reasoning_summary"] = response.choices[0].message.content
-        except AttributeError:
-             # Fallback to sync call (older OpenAI)
-             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": reasoning_prompt}],
-                max_tokens=300
-             )
-             state["reasoning_summary"] = response.choices[0].message.content
+        except (AttributeError, Exception) as e:
+             # Fallback: simple reasoning from context if LLM fails
+             print(f"LLM reasoning failed ({e}), using context-based fallback")
+             
+             # Extract key info from context
+             docs = state.get("retrieved_docs", {})
+             docs_list = docs.get('documents', [[]])[0] if docs.get('documents') else []
+             
+             if docs_list:
+                 context_summary = " ".join([doc[:100] if doc else "" for doc in docs_list[:3]])
+                 state["reasoning_summary"] = f"Based on retrieved information: {context_summary}"
+             else:
+                 state["reasoning_summary"] = "The query was received and processed."
 
         log_observability_event(datetime.utcnow(), "agent_completed", "ReasoningAgent", "Reasoning completed", execution_id=execution_id)
         return state
@@ -200,25 +224,67 @@ class Orchestrator:
         execution_id = state["execution_id"]
         query = state.get("masked_query", state.get("query"))
         reasoning = state.get("reasoning_summary", "")
+        correlated_memories = state.get("correlated_memories", [])
+        retrieved_docs = state.get("retrieved_docs", {})
         log_observability_event(datetime.utcnow(), "agent_started", "GeneratorAgent", "Generating response", execution_id=execution_id)
 
-        generation_prompt = f"Query: {query}\nReasoning: {reasoning}\nGenerate a helpful response."
+        # Detect if user is asking for elaboration
+        elaboration_keywords = ["explain", "elaborate", "more details", "tell me more", "describe", "how does", "why", "detailed", "break down", "step by step"]
+        wants_elaboration = any(keyword in query.lower() for keyword in elaboration_keywords)
+
+        # Include conversation history in the generation prompt
+        memory_context = ""
+        if correlated_memories:
+            memory_lines = []
+            for mem in correlated_memories[:3]:
+                memory_lines.append(f"- {mem.get('content', '')[:150]}")
+            if memory_lines:
+                memory_context = "\n\nConversation History:\n" + "\n".join(memory_lines)
+
+        # Adjust max_tokens and tone based on elaboration request
+        max_tokens = 800 if wants_elaboration else 300
+        conciseness_instruction = "Keep the response concise and direct." if not wants_elaboration else "Provide detailed explanations as requested."
+
+        generation_prompt = f"""User Query: {query}
+
+Reasoning: {reasoning}
+{memory_context}
+
+Generate a helpful, personalized response. Use the reasoning and conversation history to provide accurate information.
+{conciseness_instruction}
+
+IMPORTANT GUIDELINES:
+- Never use placeholders like [Your Name] or [Customer Name]
+- Do NOT include signature lines with placeholders
+- If you don't know the user's name, address them naturally without a placeholder
+- Be natural and conversational
+- If the user has told you information about themselves (like their name), use it naturally in the response"""
 
         try:
              client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
              response = await client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": generation_prompt}],
-                max_tokens=500
+                max_tokens=max_tokens
              )
-             state["final_response"] = response.choices[0].message.content
-        except AttributeError:
-             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": generation_prompt}],
-                max_tokens=500
-             )
-             state["final_response"] = response.choices[0].message.content
+             final_response = response.choices[0].message.content
+        except (AttributeError, Exception) as e:
+            # Fallback: generate response from retrieved documents if LLM fails
+            print(f"LLM generation failed ({e}), using document-based fallback")
+            
+            # Extract relevant info from retrieved documents
+            docs_list = retrieved_docs.get('documents', [[]])[0] if retrieved_docs.get('documents') else []
+            
+            if docs_list:
+                # Build response from documents
+                doc_summary = " ".join([doc[:200] if doc else "" for doc in docs_list[:2]])
+                final_response = f"Based on available information: {doc_summary[:400]}..."
+            else:
+                final_response = "I'm currently unable to provide a detailed response due to system limitations, but your query has been logged."
+
+        # Clean up response: remove placeholder patterns and excessive formatting
+        final_response = self._cleanup_response(final_response)
+        state["final_response"] = final_response
 
         log_observability_event(datetime.utcnow(), "agent_completed", "GeneratorAgent", "Response generation completed", execution_id=execution_id)
         return state
@@ -278,6 +344,26 @@ class Orchestrator:
 
         log_observability_event(datetime.utcnow(), "agent_completed", "GuardrailAgent", "Output validation completed", execution_id=execution_id)
         return state
+
+    def _cleanup_response(self, response: str) -> str:
+        """Clean up response by removing placeholders and excessive formatting."""
+        import re
+        
+        # Remove placeholder patterns like [Your Name], [Customer Name], [Name], etc.
+        response = re.sub(r'\[Your\s+\w+\]', '', response)
+        response = re.sub(r'\[(?:Customer|User)\s+\w+\]', '', response)
+        response = re.sub(r'\[\w+\]', '', response)
+        
+        # Remove common signature patterns with placeholders
+        response = re.sub(r'Best regards,\s*\n\s*(?:\[.*?\]|$)', '', response, flags=re.IGNORECASE)
+        response = re.sub(r'Sincerely,\s*\n\s*(?:\[.*?\]|$)', '', response, flags=re.IGNORECASE)
+        response = re.sub(r'Thank you,\s*\n\s*(?:\[.*?\]|$)', '', response, flags=re.IGNORECASE)
+        
+        # Clean up excessive whitespace
+        response = re.sub(r'\n\s*\n\s*\n+', '\n\n', response)  # Remove excessive blank lines
+        response = response.strip()
+        
+        return response
 
     def _combine_context(self, docs: Dict, memory: Dict, correlated_memories: list = None) -> str:
         """Combine retrieved documents, memory, and correlated historical memories into context string."""

@@ -5,6 +5,7 @@ from app.routers.chat_stream import router as chat_stream_router
 from app.config import settings
 from app.db.sqlite_client import init_db
 from app.db.chroma_client import init_chroma_collections
+from app.core.data_loader import hotload_data
 import asyncio
 
 app = FastAPI(title="Sarthi - Collaborative Incident Co-Pilot", version="1.0.0")
@@ -32,6 +33,8 @@ app.include_router(settings_router.router, prefix="/api", tags=["settings"])
 async def startup_event():
     init_db()
     await init_chroma_collections()
+    # Hotload any static data under /data into Chroma for retrieval
+    await hotload_data()
 
 @app.get("/")
 async def root():

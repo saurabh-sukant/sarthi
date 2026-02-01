@@ -1,0 +1,25 @@
+Company Name: Sarthi Technologies Pvt. Ltd.
+Address: 123 Innovation Avenue, Sector 5, Bengaluru, Karnataka, 560100, India
+Phone: +91-80-1234-5678
+Email: contact@sarthitech.com
+Website: https://www.sarthitech.com
+
+Description:
+Sarthi Technologies is a leading provider of innovative software solutions, specializing in AI-driven products and digital transformation services for businesses worldwide.
+
+Founded: 2018
+CEO: John Doe
+Number of Employees: 150
+
+Core Services:
+- Custom Software Development
+- Artificial Intelligence & Machine Learning Solutions
+- Cloud Computing Services
+- IT Consulting
+- Mobile & Web Application Development
+
+Mission:
+To empower organizations with cutting-edge technology solutions that drive growth, efficiency, and digital excellence.
+
+Vision:
+To be a global leader in technology innovation, delivering value and impact to clients and communities.
