@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from app.db.sqlite_client import get_memory_items, update_memory_item, delete_memory_item, create_execution
+from app.db.sqlite_client import get_memory_items, update_memory_item, delete_memory_item, create_memory_item
 from app.utils.embeddings import get_embeddings
 from app.db.chroma_client import store_memory_embeddings, search_memory
 import uuid
@@ -34,17 +34,16 @@ class MemoryAgent:
 
     async def write_memory(self, content: str, memory_type: str, source: str = None) -> str:
         """
-        Write a new memory item.
+        Write a new memory item to both SQLite and ChromaDB.
         """
         memory_id = str(uuid.uuid4())
 
-        # Store in SQLite
-        # For now, we'll store in ChromaDB for semantic search
+        # Store in SQLite for persistent data store
+        create_memory_item(memory_id, content, memory_type, source)
+
+        # Store embeddings in ChromaDB for semantic search
         embeddings = await get_embeddings([content])
         await store_memory_embeddings([content], embeddings, [memory_type])
-
-        # Also store metadata in SQLite if needed
-        # This is a simplified version
 
         return memory_id
 

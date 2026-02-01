@@ -1,0 +1,18 @@
+DOCUMENT ID: TECH-PAY-001
+SUBJECT: J-Cloud Payment Switch v2.8 Implementation
+--------------------------------------------------
+1. ARCHITECTURE OVERVIEW
+The J-Cloud Payment Switch acts as the orchestration layer between the Core Banking API and the SEPA/SWIFT networks. 
+
+2. AUDIT LOGGING MANDATE (CRITICAL)
+Every transaction MUST be persisted to the CephStore cluster PRIOR to gateway acknowledgment. 
+- If the CephStore write-buffer returns a 507 (Insufficient Storage) or latency exceeds 500ms, the Switch must ENTER 'FAIL-CLOSE' mode.
+- Error Code: ERR-LOG-99 (Storage Full)
+
+3. TIMEOUT CONFIGURATIONS
+- Ingress Timeout: 30s
+- Egress (EU-Gateway) Timeout: 15s
+- Handshake Retry: 3 attempts before returning ERR-EU-PAY-5004.
+
+4. ENDPOINT DEPENDENCIES
+- /payments/sepa/transfer -> Internal Audit Logger -> CephStore Cluster.

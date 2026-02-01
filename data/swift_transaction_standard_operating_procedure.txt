@@ -1,0 +1,9 @@
+DOCUMENT ID: SOP-OPS-WIRE-04
+SUBJECT: Manual Resolution for SEPA/SWIFT Latency
+--------------------------------------------------
+STEP 1: Verify Correlation ID in the Gateway Trace (e.g., TX-EU-7782).
+STEP 2: Check the 'Status' field in the Core Ledger.
+   - If 'PENDING': Check CephStore storage health.
+   - If 'REJECTED': Check error code against PSD2-SCA compliance codes.
+STEP 3: If latency is caused by Storage Quota (JCENG-3818), perform a manual flush of the /tmp/payment-buffer to the secondary S3 bucket.
+STEP 4: Update the JIRA ticket status to 'Resolved - Manual Buffer Flush'.

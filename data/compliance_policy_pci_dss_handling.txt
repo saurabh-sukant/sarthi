@@ -1,0 +1,13 @@
+DOCUMENT ID: COMP-SEC-PCI-2026
+SUBJECT: PCI DSS Data Handling & Masking Rules
+--------------------------------------------------
+1. PRIMARY ACCOUNT NUMBER (PAN) HANDLING
+- Agents must NEVER display more than the first 6 and last 4 digits of a card number.
+- Full PANs must never be logged in application logs (use SHA-256 Hashing).
+
+2. SQLi PREVENTION (GUARDRAIL-01)
+- All input fields, specifically 'AccountHolderName', must be sanitized using the 'BankGuard' library.
+- Direct UNION SELECT or JOIN queries are strictly prohibited on the /apply/credit endpoint.
+
+3. INCIDENT RESPONSE
+- In the event of a suspected SQLi (SEC-901), the IP must be automatically blacklisted in the WAF for 24 hours.

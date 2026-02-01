@@ -80,6 +80,22 @@ def get_memory_items() -> List[dict]:
             } for memory in memories
         ]
 
+def create_memory_item(memory_id: str, content: str, memory_type: str, source: str = None) -> str:
+    """Create a new memory item in SQLite."""
+    with SessionLocal() as session:
+        memory = Memory(
+            id=memory_id,
+            type=memory_type,
+            content=content,
+            source=source,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            is_deleted=False
+        )
+        session.add(memory)
+        session.commit()
+        return memory_id
+
 def get_execution(execution_id: str) -> Optional[dict]:
     with SessionLocal() as session:
         execution = session.query(Execution).filter(Execution.id == execution_id).first()

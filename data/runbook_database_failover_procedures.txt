@@ -1,0 +1,25 @@
+DOCUMENT ID: OPS-DB-FAILOVER-v4
+SUBJECT: Primary Database Failover Procedure (PostgreSQL Cluster)
+LAST UPDATED: 2025-11-15
+--------------------------------------------------
+1. FAILOVER CRITERIA
+Automatic failover to the Secondary Node (db-eu-sec-01) is triggered when:
+   a. Primary Node CPU utilization > 95% for 5 minutes.
+   b. Write Latency on the 'Payments' table exceeds 2000ms (Ref: Alert GWAY-LATENCY).
+   c. 5xx Error Rate > 2% of total traffic.
+
+2. PRE-FAILOVER CHECKLIST (CRITICAL)
+Before promoting the replica, the Agent/Admin MUST verify the integrity of the Audit Log Buffer.
+   - WARNING: If the Audit Log Write-Ahead Log (WAL) is full or the storage mount (CephStore) is unreachable, the Failover will HANG at "Syncing Logs".
+   - CHECK: Run `select status from system.audit_buffer`. If status is 'FULL' or 'LOCKED', do NOT trigger failover. Clear buffer first.
+
+3. EXECUTION STEPS
+   Step 1: Quiesce the Primary Node (Set to Read-Only).
+   Step 2: Flush pending transactions to the Replication Slot.
+   Step 3: Promote Secondary Node to Primary.
+      Command: `pg_ctl promote -D /var/lib/postgresql/data`
+   Step 4: Update DNS records for `db-writer.internal.jcloud`.
+
+4. ROLLBACK PROCEDURE
+   If the new Primary rejects connections with "ERR-EU-AUTH-403" (Compliance Mismatch), it likely means the PSD2 keys did not sync.
+   Action: Revert DNS to the old Primary and restart the 'Key-Manager' pod.

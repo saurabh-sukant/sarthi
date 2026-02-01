@@ -6,16 +6,16 @@ class EmbeddingService:
     """Service for generating embeddings using OpenAI."""
 
     def __init__(self):
-        openai.api_key = settings.openai_api_key
+        self.client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
 
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text."""
         try:
-            response = await openai.Embedding.acreate(
+            response = await self.client.embeddings.create(
                 input=text,
                 model="text-embedding-ada-002"
             )
-            return response['data'][0]['embedding']
+            return response.data[0].embedding
         except Exception as e:
             print(f"Embedding error: {e}")
             return [0.0] * 1536  # Fallback for ada-002
@@ -23,11 +23,11 @@ class EmbeddingService:
     async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for multiple texts."""
         try:
-            response = await openai.Embedding.acreate(
+            response = await self.client.embeddings.create(
                 input=texts,
                 model="text-embedding-ada-002"
             )
-            return [data['embedding'] for data in response['data']]
+            return [data.embedding for data in response.data]
         except Exception as e:
             print(f"Batch embedding error: {e}")
             return [[0.0] * 1536 for _ in texts]

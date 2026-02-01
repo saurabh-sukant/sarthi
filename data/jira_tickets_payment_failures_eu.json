@@ -1,0 +1,60 @@
+{
+  "rss": {
+    "channel": {
+      "title": "JIRA",
+      "items": [
+        {
+          "key": "PAY-101",
+          "summary": "High latency in SEPA Instant Credit Transfers - Frankfurt Node",
+          "description": "Customer transactions are hanging at 'PENDING' state. Correlation ID: TX-EU-7782. Logs indicate gateway timeout at the EU-Central-1 ingress point. Potentially related to API Spec v4.2 update.",
+          "priority": "P1 (Critical)",
+          "status": "In Progress",
+          "created": "Fri, 30 Jan 2026 09:15:00 +0100",
+          "labels": "EU-GATEWAY-26Q1",
+          "customfields": {
+            "customfield": [
+              { "customfieldname": "Feature risk", "customfieldvalues": { "customfieldvalue": "High" } },
+              { "customfieldname": "Trace_ID", "customfieldvalues": { "customfieldvalue": "TRC-9901-PAY" } }
+            ]
+          }
+        },
+        {
+          "key": "PAY-102",
+          "summary": "PSD2 SCA handshaking failure for French Merchant IDs",
+          "description": "Auth calls returning ERR-EU-AUTH-403. This is impacting 15% of transactions in the FR region. Check SOP-SEC-09 for compliance keys.",
+          "priority": "P1 (Critical)",
+          "status": "Open",
+          "created": "Fri, 30 Jan 2026 10:20:00 +0100",
+          "labels": "PSD2-REG-COMP"
+        },
+        {
+          "key": "PAY-103",
+          "summary": "Batch processing delay: EU Clearing House Sync",
+          "description": "Nightly reconciliation for EOD Jan 29 failed. Status code 502 Bad Gateway during POST to /v1/reconcile.",
+          "priority": "P2 (High)",
+          "status": "Resolved",
+          "created": "Thu, 29 Jan 2026 23:45:00 +0100",
+          "labels": "RECON-EU"
+        },
+        {
+          "key": "PAY-104",
+          "summary": "Update CephStore quota for Payment Audit Logs",
+          "description": "Audit logs for EU payments are reaching the 500GB threshold. Link to JCENG-3818. Need to sync quota before overflow occurs.",
+          "priority": "P3 (Medium)",
+          "status": "In Progress",
+          "created": "Fri, 30 Jan 2026 14:00:00 +0100",
+          "labels": "INFRA-STORAGE"
+        },
+        {
+          "key": "PAY-105",
+          "summary": "Currency Exchange Microservice - Latency Spikes",
+          "description": "EUR to GBP conversions taking > 1200ms. Service health check shows memory leak in pod xc-curr-eu-02.",
+          "priority": "P2 (High)",
+          "status": "Open",
+          "created": "Fri, 30 Jan 2026 15:30:00 +0100",
+          "labels": "MICROSERVICE-LATENCY"
+        }
+      ]
+    }
+  }
+}

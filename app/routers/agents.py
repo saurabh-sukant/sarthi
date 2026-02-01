@@ -9,6 +9,7 @@ ingestion_service = IngestionService()
 
 class AgentInfo(BaseModel):
     name: str
+    description: str
 
 class IngestionRequest(BaseModel):
     source_type: str
@@ -21,8 +22,14 @@ class SelfServiceRequest(BaseModel):
 @router.get("/", response_model=List[AgentInfo])
 async def list_agents():
     return [
-        {"name": "SelfServiceAgent"},
-        {"name": "IngestionAgent"},
+        {"name": "SelfServiceAgent", "description": "Handles user queries and provides self-service solutions"},
+        {"name": "OrchestratorAgent", "description": "Coordinates multiple agents to fulfill complex tasks"},
+        {"name": "IngestionAgent", "description": "Manages data ingestion from various sources"},
+        {"name": "RetrievalAgent", "description": "Retrieves relevant documents and memory based on queries"},
+        {"name": "MemoryAgent", "description": "Handles memory storage and retrieval for agents"},
+        {"name": "ReasoningAgent", "description": "Performs reasoning over provided data to generate insights"},
+        {"name":"ResponseSynthesisAgent", "description":"Synthesizes final responses from aggregated information"},
+        {"name":"GuardrailAgent", "description":"Ensures outputs adhere to defined safety and quality guidelines"},
         # Add other agents as implemented
     ]
 

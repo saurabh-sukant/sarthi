@@ -1,0 +1,28 @@
+Incident Resolution Summary: Q3 2025 Gateway Instability
+Date: 2025-08-15
+System: J-Cloud API Gateway (Kong/Resilience4j)
+
+THE PROBLEM
+Intermittent 503 Service Unavailable errors were observed during the Q3 marketing push. Investigation revealed that downstream microservices were timing out, but the Gateway kept sending requests, consuming resources.
+
+THE FIX: CIRCUIT BREAKER IMPLEMENTATION
+We introduced `Resilience4j` Circuit Breakers to the Payment Switch.
+
+Configuration Details:
+- Failure Rate Threshold: 50%
+- Wait Duration in Open State: 60s
+- Permitted Number of Calls in Half-Open State: 10
+
+OPERATIONAL BEHAVIOR (Standard Operating Procedure)
+1. CLOSED State: Business as usual.
+2. OPEN State: The system detects failures (e.g., Database or Storage timeout). It immediately rejects requests with "503 - Circuit Open" to prevent cascading failure.
+   *NOTE:* In the logs, you will see: "CircuitBreaker 'audit-storage' is OPEN".
+
+HOW TO RESET MANUALLY
+If the underlying issue (e.g., Storage Full) is fixed, but the Circuit Breaker is stuck in OPEN state:
+1. Access the JMX Console or Admin Shell.
+2. Run command: `cb-admin reset --name audit-storage`
+3. Verify state changes to CLOSED.
+
+WARNING
+Do not reset the Circuit Breaker without confirming the infrastructure is healthy. Doing so will immediately crash the application threads again (See: Black Friday 2024 RCA).

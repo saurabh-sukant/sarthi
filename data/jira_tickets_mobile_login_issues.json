@@ -1,0 +1,54 @@
+{
+  "rss": {
+    "channel": {
+      "title": "JIRA",
+      "items": [
+        {
+          "key": "MOB-441",
+          "summary": "Biometric (FaceID) Loop on iOS 19.1",
+          "description": "Users report being looped back to the login screen after successful FaceID. Correlation with BioSDK v3.4.1 detected. Error: BIO-FAIL-909.",
+          "priority": "P1 (Critical)",
+          "status": "In Progress",
+          "created": "Fri, 30 Jan 2026 08:00:00 +0000",
+          "labels": "MOBILE-IOS-BIO"
+        },
+        {
+          "key": "MOB-442",
+          "summary": "Android Fingerprint 'Device Not Recognized' error",
+          "description": "Intermittent failure on Samsung S24 models. Possible TEE (Trusted Execution Environment) timeout.",
+          "priority": "P2 (High)",
+          "status": "Open",
+          "created": "Fri, 30 Jan 2026 09:12:00 +0000",
+          "labels": "MOBILE-ANDROID"
+        },
+        {
+          "key": "MOB-443",
+          "summary": "MFA SMS Delivery Delay - UK Carriers",
+          "description": "OTP delivery exceeding 120 seconds. External provider issue (Twilio/Vonage) suspected. Check Monitoring Dashboard for SMS-G7.",
+          "priority": "P1 (Critical)",
+          "status": "Open",
+          "created": "Fri, 30 Jan 2026 11:45:00 +0000",
+          "labels": "MFA-AUTH"
+        },
+        {
+          "key": "MOB-444",
+          "summary": "Session persistence failure after app minimize",
+          "description": "JWT tokens expiring prematurely when app is sent to background. Correlates with new memory management policy in Android 14.",
+          "priority": "P3 (Medium)",
+          "status": "In Progress",
+          "created": "Thu, 29 Jan 2026 16:20:00 +0000",
+          "labels": "SESSION-MGMT"
+        },
+        {
+          "key": "MOB-445",
+          "summary": "App Crash - Root/Jailbreak Detection false positive",
+          "description": "New security update flagging legitimate devices as 'compromised'. Affects RootCheck v2.1 implementation.",
+          "priority": "P2 (High)",
+          "status": "Resolved",
+          "created": "Wed, 28 Jan 2026 10:00:00 +0000",
+          "labels": "SECURITY-MOBILE"
+        }
+      ]
+    }
+  }
+}

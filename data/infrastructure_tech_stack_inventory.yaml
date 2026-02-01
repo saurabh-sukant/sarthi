@@ -1,0 +1,33 @@
+inventory_date: 2026-01-30
+environment: PRODUCTION
+regions: ["eu-central-1", "us-east-2"]
+
+compute:
+  orchestration: "Kubernetes v1.31"
+  runtime: "Docker v27.0"
+
+backend_services:
+  language: "Java 17 (LTS)"
+  framework: "Spring Boot 3.2.5"
+  build_tool: "Gradle 8.7"
+
+database:
+  primary_ledger: 
+    type: "PostgreSQL"
+    version: "15.6"
+    cluster_role: "Primary-Replica"
+  audit_store:
+    type: "Ceph"
+    version: "Reef (v18.2.1)"
+    protocol: "S3-Compatible Object Store"
+
+frontend_mobile:
+  ios_target: "iOS 18+"
+  android_target: "Android 14+"
+  biometric_sdk:
+    current_stable: "v4.0.0"
+    legacy_supported: "v3.4.1" # [FLAGGED: End of Life 2026-02-01]
+
+security:
+  waf: "ModSecurity v3.0"
+  identity_provider: "Keycloak v24.0"

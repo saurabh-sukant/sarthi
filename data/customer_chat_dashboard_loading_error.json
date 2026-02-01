@@ -1,0 +1,43 @@
+{
+  "transcripts": [
+    {
+      "chat_id": "CHAT-9901-EU",
+      "customer_name": "Marcus Aurelius",
+      "scenario": "Scenario A (Payment Failure/Latency)",
+      "metadata": { "browser": "Chrome 121.0", "region": "Frankfurt, DE" },
+      "turns": [
+        {"speaker": "System", "text": "Connecting you to a live agent... Connected to Sarah K."},
+        {"speaker": "Customer", "text": "Hi, I'm trying to send a SEPA transfer and the dashboard is just spinning."},
+        {"speaker": "Agent", "text": "I'm sorry for the delay, Marcus. I can see your session is active. Are you seeing an error code?"},
+        {"speaker": "Customer", "text": "No code, just a white screen after I hit 'Confirm Payment'. It's been 5 minutes."},
+        {"speaker": "Agent", "text": "Are you on a mobile device or desktop?"},
+        {"speaker": "Customer", "text": "Desktop. I tried refreshing, but now it says 'Account Balance Unavailable'."},
+        {"speaker": "Agent", "text": "That sounds like a sync issue. Let me check the Frankfurt node status..."},
+        {"speaker": "Customer", "text": "This is urgent. The payment is for a real estate deposit. Is my money gone?"},
+        {"speaker": "Agent", "text": "Your funds are safe. I see a 'PENDING' status on the ledger. We are experiencing regional latency. Ref: TX-EU-7782."},
+        {"speaker": "Customer", "text": "How long will it take? I have a deadline by EOD."},
+        {"speaker": "Agent", "text": "Our engineering team is working on it. I'm escalating your specific Transaction ID to the priority queue."},
+        {"speaker": "Customer", "text": "Wait, I just got a notification on my phone saying 'Session Expired'. What now?"},
+        {"speaker": "Agent", "text": "Please do not attempt to re-submit the payment. Stay on the line while I verify the Auth handshake."},
+        {"speaker": "Customer", "text": "Okay. I'll wait. But please tell them I can't even see my transaction history now."},
+        {"speaker": "Agent", "text": "Understood. That's a known symptom of the current gateway timeout... [TRUNCATED - Turn 15/25]"}
+      ]
+    },
+    {
+      "chat_id": "CHAT-4402-BIO",
+      "customer_name": "Elena Rossi",
+      "scenario": "Scenario B (Biometric Login)",
+      "metadata": { "device": "iPhone 15 Pro", "os_version": "iOS 19.1" },
+      "turns": [
+        {"speaker": "Customer", "text": "I can't log in. FaceID recognizes me, then it just sends me back to the login screen."},
+        {"speaker": "Agent", "text": "Hello Elena. Did you recently update your phone software?"},
+        {"speaker": "Customer", "text": "Yes, I updated to iOS 19.1 last night. It worked fine before that."},
+        {"speaker": "Agent", "text": "We've had several reports of this. Does it give you an option to use a PIN?"},
+        {"speaker": "Customer", "text": "No, it just flashes the FaceID icon and then kicks me out. It's an infinite loop."},
+        {"speaker": "Agent", "text": "Try force-closing the app and clearing the cache in Settings."},
+        {"speaker": "Customer", "text": "I did that. I even reinstalled the app. Still the same issue. Error BIO-FAIL-909."},
+        {"speaker": "Agent", "text": "Thank you for that error code. That confirms a mismatch with our current SDK... [TRUNCATED - Turn 12/20]"}
+      ]
+    }
+  ]
+}

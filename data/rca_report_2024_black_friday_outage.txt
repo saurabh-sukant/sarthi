@@ -1,0 +1,29 @@
+ROOT CAUSE ANALYSIS (RCA)
+INCIDENT ID: INC-2024-BF-009
+DATE: 2024-11-29
+SEVERITY: SEV-1 (Global Outage)
+AUTHOR: Principal Site Reliability Engineer (SRE)
+
+1. EXECUTIVE SUMMARY
+On Black Friday 2024, the Core Banking System experienced a 45-minute outage. The root cause was identified as "Log Ingestion Backpressure" caused by high traffic volume saturating the Fluentd buffers.
+
+2. IMPACT
+- 120,000 Transactions failed.
+- Estimated revenue loss: €4.5M.
+- Reputation damage due to social media trending topic #JCloudDown.
+
+3. TECHNICAL ROOT CAUSE
+The payment processing service was configured to write logs *synchronously* to the local disk before acknowledging the transaction. 
+- When traffic spiked to 50k TPS, the disk I/O became the bottleneck.
+- The application threads waited for the disk write to complete, causing a thread pool exhaustion.
+- This resulted in a "Cascading Failure" across the API Gateway.
+
+4. REMEDIATION & ACTION ITEMS (Completed Q1 2025)
+[x] Move to Asynchronous Logging (Log4j2 AsyncAppender).
+[x] Decouple storage: Logs now ship to a central storage cluster (CephStore).
+[ ] (PENDING) Implement Auto-Scaling for Storage Quotas. <--- THE CLUE FOR THE CURRENT INCIDENT
+    *Status: Deferred to 2026 Roadmap due to budget constraints.*
+
+5. LESSONS LEARNED
+"We must never let a non-critical side-effect (logging) block the critical path (payments)."
+If storage becomes unavailable, the system should degrade gracefully, not halt.

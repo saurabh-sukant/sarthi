@@ -1,0 +1,33 @@
+{
+  "rss": {
+    "channel": {
+      "title": "JIRA-SECURITY",
+      "items": [
+        {
+          "key": "SEC-901",
+          "summary": "CRITICAL: Potential SQL Injection Attempt on /api/v1/apply/credit",
+          "description": "WAF triggered on payload containing 'UNION SELECT' and '--'. Source IP: 192.168.44.11. Request bypassed initial validation layer. Immediate sanitization review required for the 'AccountHolderName' field.",
+          "priority": "P0 (Immediate)",
+          "status": "In Progress",
+          "created": "Fri, 30 Jan 2026 22:10:00 +0000",
+          "labels": "WAF-ALERT, SQLi",
+          "customfields": {
+            "customfield": [
+              { "customfieldname": "Compliance Type", "customfieldvalues": { "customfieldvalue": "PCI DSS" } },
+              { "customfieldname": "Security Risk Score", "customfieldvalues": { "customfieldvalue": "9.8" } }
+            ]
+          }
+        },
+        {
+          "key": "SEC-902",
+          "summary": "Exposed Internal Database Schema in Error Response",
+          "description": "A failed query on the 'Payments' table leaked DB structure in the verbose error message (Status 500). Needs immediate silencing of production stack traces. Correlates with PAY-101 latency issues.",
+          "priority": "P1 (Critical)",
+          "status": "Open",
+          "created": "Fri, 30 Jan 2026 23:05:00 +0000",
+          "labels": "INFO-DISCLOSURE"
+        }
+      ]
+    }
+  }
+}
