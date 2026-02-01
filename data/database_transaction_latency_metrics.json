@@ -1,0 +1,33 @@
+{
+  "metric_set": "db_query_latency",
+  "database": "postgres-eu-primary",
+  "data_points": [
+    {
+      "time": "09:14:50",
+      "query_signature": "SELECT * FROM accounts WHERE id = ?",
+      "avg_latency_ms": 12,
+      "p95_latency_ms": 15
+    },
+    {
+      "time": "09:15:01",
+      "query_signature": "INSERT INTO audit_log (txn_id, payload) VALUES (?, ?)",
+      "avg_latency_ms": 5002,
+      "p95_latency_ms": 15000,
+      "lock_wait_time_ms": 4900,
+      "error_count": 450
+    },
+    {
+      "time": "09:15:30",
+      "query_signature": "UPDATE accounts SET balance = balance - ? WHERE id = ?",
+      "avg_latency_ms": 2500,
+      "status": "ROLLED_BACK_TIMEOUT"
+    },
+    {
+      "time": "09:16:15",
+      "query_signature": "UNION SELECT 1,database(),3--",
+      "avg_latency_ms": 45,
+      "note": "Unusual Syntax Detected",
+      "source_ip": "192.168.44.11"
+    }
+  ]
+}

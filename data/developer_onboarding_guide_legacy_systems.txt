@@ -1,0 +1,23 @@
+README: ONBOARDING NOTES FOR LEGACY CORE (The "Mainframe")
+Author: Senior Dev Team
+--------------------------------------------------
+Hey new joiner,
+
+Welcome to J-Cloud. While our frontend is shiny React/Node.js, the backend still talks to "The Core" (Legacy Mainframe) for final ledger settlement. Here are the dragons you need to know about:
+
+1. THE "AccountHolderName" FIELD
+   - The Mainframe only accepts exactly 40 characters for names.
+   - If you send 41 chars, it truncates silently.
+   - If you send special characters (like the dashes '--' or quotes in a SQL injection payload), the COBOL bridge will throw a generic "System Error 500" instead of a validation error. This is why our logs sometimes look cryptic.
+
+2. NIGHTLY RECONCILIATION (Ref: PAY-103)
+   - Every night at 00:00 UTC, we run a batch job to sync the SQL DB with the Mainframe.
+   - If the "Currency Exchange Microservice" is lagging (latency > 1000ms), the batch job misses its window and fails with a 502 Bad Gateway.
+   - If this happens, DO NOT retry immediately. Wait 60 minutes.
+
+3. LOGGING
+   - The Legacy system doesn't use JSON. It uses a fixed-width format.
+   - If you see logs like `ERR-LOG-99`, that's actually coming from the modern wrapper, not the Mainframe itself.
+
+4. COMPLIANCE
+   - The Mainframe doesn't know what "GDPR" or "PCI DSS" is. We handle masking in the middleware. If you ever see raw credit card numbers in a text file named `dump_core.txt`, delete it immediately and report it.

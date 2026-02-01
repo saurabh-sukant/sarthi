@@ -1,0 +1,36 @@
+{
+  "channel": "ops-incidents-warroom",
+  "date": "2026-01-30",
+  "messages": [
+    {
+      "time": "09:18:05",
+      "user": "derek_sre",
+      "text": "@channel Heads up. Monitoring is screaming on the Frankfurt ingress. Latency on /v1/payments is hitting 2.5s. @marcus_devops you seeing this?"
+    },
+    {
+      "time": "09:19:20",
+      "user": "marcus_devops",
+      "text": "Checking Grafana... Yeah, it's a spike. Also seeing a surge in 502s. Looks like the connection pool to the main DB is saturated. Wait... I'm seeing weird strings in the logs."
+    },
+    {
+      "time": "09:20:45",
+      "user": "elena_security",
+      "text": "Marcus, pull those strings. I just got a WAF alert for SEC-901. Someone is hitting the credit application endpoint with UNION SELECT payloads at the same time the latency spiked."
+    },
+    {
+      "time": "09:21:30",
+      "user": "marcus_devops",
+      "text": "Attached snippet: `GET /api/v1/apply/credit?id=101' UNION SELECT NULL,NULL,NULL--`. @elena_security, looks like the SQLi attempt is forcing a full table scan and locking rows, which is causing the PAY-101 latency for legit users."
+    },
+    {
+      "time": "09:22:15",
+      "user": "derek_sre",
+      "text": "Okay, tactical plan: 1. Blacklist Source IP 192.168.44.11 at the edge. 2. Scale the payment-service pods to 5 replicas to handle the backlog. 3. @elena_security please update the WAF rules."
+    },
+    {
+      "time": "09:25:00",
+      "user": "marcus_devops",
+      "text": "IP 192.168.44.11 is null-routed. Latency starting to drop. I'll update the JIRA tickets with the Trace IDs."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "resource_quotas": {
+    "compute": {
+      "max_pods_per_node": 110,
+      "cpu_limit_core_banking": "64 vCPU"
+    },
+    "storage": {
+      "ceph_storage_global_cap_gb": 500,
+      "ceph_storage_alert_threshold_pct": 90,
+      "db_primary_volume_gb": 2000
+    },
+    "api_gateway": {
+      "rate_limit_per_user_per_min": 100,
+      "burst_limit_per_user": 150,
+      "global_concurrent_connections": 10000
+    },
+    "third_party": {
+      "sms_provider_daily_limit": 50000,
+      "kyc_verification_calls_per_hour": 500
+    }
+  }
+}

@@ -105,6 +105,105 @@ User Input → Input Guardrail → Query Intelligence → Retrieval → Re-ranki
 
 ## Docker Deployment
 
+### Using Docker Compose (Recommended)
+
+The complete system runs in three Docker containers:
+
+1. **sarthi-api** (FastAPI backend)
+2. **sarthi-frontend** (React frontend)
+3. **chroma-db** (Vector database)
+
+#### Quick Start
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your OpenAI API key and SECRET_KEY
+nano .env
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+#### Access Services
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:5173 |
+| **API** | http://localhost:8000 |
+| **API Docs** | http://localhost:8000/docs |
+| **Chroma UI** | http://localhost:8001 |
+
+#### Useful Commands
+
+```bash
+# Stop all services
+docker-compose down
+
+# Rebuild images
+docker-compose up -d --build
+
+# View specific service logs
+docker-compose logs -f sarthi-api
+docker-compose logs -f sarthi-frontend
+
+# Run a one-off command in a container
+docker-compose exec sarthi-api python -m pytest
+
+# Clean up everything (including volumes)
+docker-compose down -v
+```
+
+### Manual Docker Deployment
+
+If you prefer to run containers individually:
+
+```bash
+# Build backend image
+docker build -t sarthi-api .
+
+# Build frontend image
+docker build -t sarthi-frontend ./frontend
+
+# Create network
+docker network create sarthi-network
+
+# Run Chroma DB
+docker run -d --name chroma-db --network sarthi-network -p 8001:8000 chromadb/chroma:latest
+
+# Run API
+docker run -d --name sarthi-api --network sarthi-network -p 8000:8000 \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e SECRET_KEY=$SECRET_KEY \
+  sarthi-api
+
+# Run Frontend
+docker run -d --name sarthi-frontend --network sarthi-network -p 5173:5173 \
+  -e VITE_API_BASE_URL=http://sarthi-api:8000 \
+  sarthi-frontend
+```
+
+### Setup Script
+
+For convenience, use the provided setup script:
+
+```bash
+# Make script executable
+chmod +x setup.sh
+
+# Run with Docker
+./setup.sh docker
+
+# Or run locally
+./setup.sh local
+```
+
+## Docker Deployment
+
 1. **Build and run with Docker Compose**:
    ```bash
    docker-compose up --build

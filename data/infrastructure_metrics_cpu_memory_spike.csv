@@ -1,0 +1,10 @@
+timestamp,hostname,service_name,cpu_usage_pct,memory_usage_pct,disk_usage_pct,disk_iops,network_in_mb,network_out_mb
+2026-01-30T09:00:00Z,eu-node-01,payment-processor,45.2,60.1,82.0,1200,50,45
+2026-01-30T09:05:00Z,eu-node-01,payment-processor,46.0,61.0,85.5,1350,55,48
+2026-01-30T09:10:00Z,eu-node-01,payment-processor,48.5,62.5,92.0,2100,65,55
+2026-01-30T09:14:00Z,eu-ceph-01,ceph-storage,25.0,80.0,99.1,500,10,5
+2026-01-30T09:15:00Z,eu-ceph-01,ceph-storage,28.0,81.0,100.0,0,2,1
+2026-01-30T09:15:05Z,eu-node-01,payment-processor,89.0,85.0,100.0,50,120,5
+2026-01-30T09:16:00Z,eu-node-01,payment-processor,92.0,88.0,100.0,50,150,5
+2026-01-30T09:20:00Z,eu-node-01,payment-processor,95.0,90.0,100.0,10,180,2
+2026-01-30T09:30:00Z,eu-node-01,payment-processor,98.0,92.0,100.0,5,200,1

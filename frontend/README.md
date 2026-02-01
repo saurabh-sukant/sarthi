@@ -1,32 +1,47 @@
-# Sarthi Frontend
+# SARTHI Frontend (React + Vite + Axios)
 
-A simple HTML and vanilla JavaScript frontend for the Sarthi AI co-pilot application.
+React-based frontend for the SARTHI incident co-pilot system with axios-based endpoint management.
 
-## Features
+## Local Development
 
-- Clean, responsive chat interface
-- Sidebar navigation for different sections
-- Real-time communication with FastAPI backend
-- Memory dashboard
-- Agent management
-- Observability panel
+```bash
+# From project root
+cd frontend
 
-## Usage
+# Install dependencies
+npm install
 
-1. Start the FastAPI backend on port 8000
-2. Start the frontend server: `python -m http.server 8080`
-3. Open `http://localhost:8080/index.html` in your browser
+# Start dev server (default: http://localhost:5173)
+npm run dev
 
-## Files
+# Build for production
+npm run build
 
-- `index.html` - Main application interface
-- All styling and JavaScript is embedded in the HTML file
+# Preview production build
+npm run preview
+```
 
-## API Endpoints
+## Environment Variables
 
-The frontend communicates with these backend endpoints:
-- `POST /api/chat` - Send chat messages
-- `GET /api/memory/items` - Get memory items
-- `GET /api/agents/` - List available agents
-- `POST /api/agents/ingestion` - Ingest documents
-- `GET /api/observability/events` - Get observability events
+- `VITE_API_BASE_URL`: Backend API base URL (default: `http://localhost:8000`)
+
+## API Services
+
+All backend endpoints are wrapped in `src/services/api.js` using axios:
+
+- **Chat**: `submitChatQuery()`, streaming via SSE
+- **Agents**: `listAgents()`, `runSelfService()`, `runIngestion()`
+- **Guardrail**: `validateInput()`, `validateOutput()`
+- **Memory**: `listMemory()`, `updateMemory()`, `deleteMemory()`
+- **Feedback**: `submitFeedback()`
+- **Observability**: `getDashboard()`, `createEventSource()`
+
+## Docker
+
+Build and run within docker-compose (see `DOCKER.md` in project root):
+
+```bash
+docker-compose up -d
+```
+
+Frontend will be available at `http://localhost:5173`

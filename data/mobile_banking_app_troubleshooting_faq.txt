@@ -1,0 +1,12 @@
+DOCUMENT ID: FAQ-MOB-2026
+SUBJECT: Mobile App Troubleshooting (iOS/Android)
+--------------------------------------------------
+Q: Why is my FaceID looping back to the login screen? (Error BIO-FAIL-909)
+A: This usually indicates a version mismatch between the Mobile SDK and the Core Auth API. 
+   FIX: 
+   1. Ensure the user is on app version v4.2.1+.
+   2. Reset the Biometric Cache: Settings > Security > Reset Biometrics.
+   3. If the user is on iOS 19.1, verify that the 'Secure Enclave' permissions are enabled in the OS settings.
+
+Q: SMS OTP is not arriving.
+A: Check the 'SMS-G7' gateway status. UK carriers often experience throttle limits during peak hours (10:00 - 12:00 UTC).

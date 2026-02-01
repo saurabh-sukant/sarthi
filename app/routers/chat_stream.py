@@ -1,43 +1,89 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from app.db.sqlite_client import log_observability_event
+from app.db.sqlite_client import log_observability_event, get_execution, get_observability_events
 import asyncio
 import json
 
 router = APIRouter()
 
-# In-memory storage for demo - in production, use Redis or similar
-active_streams = {}
+# Track which events have been sent per execution
+sent_event_ids = {}
 
 @router.get("/stream/{execution_id}")
 async def stream_chat_execution(execution_id: str):
-    """Stream real-time execution events via SSE."""
+    """Stream real-time execution events and response via SSE."""
 
     async def event_generator():
         """Generate SSE events for the execution."""
         # Send initial connection event
         yield f"data: {json.dumps({'event': 'connected', 'execution_id': execution_id})}\n\n"
 
-        # Listen for events (in a real implementation, this would poll a queue or use websockets)
-        # For demo, we'll simulate some events
-        events = [
-            {"event": "agent_started", "agent": "GuardrailAgent", "timestamp": "2026-01-31T10:00:00Z"},
-            {"event": "agent_completed", "agent": "GuardrailAgent", "timestamp": "2026-01-31T10:00:01Z"},
-            {"event": "agent_started", "agent": "RetrievalAgent", "timestamp": "2026-01-31T10:00:02Z"},
-            {"event": "tool_call", "tool": "vector_search", "input": "gateway timeout", "timestamp": "2026-01-31T10:00:03Z"},
-            {"event": "agent_completed", "agent": "RetrievalAgent", "timestamp": "2026-01-31T10:00:04Z"},
-            {"event": "agent_started", "agent": "ReasoningAgent", "timestamp": "2026-01-31T10:00:05Z"},
-            {"event": "agent_completed", "agent": "ReasoningAgent", "timestamp": "2026-01-31T10:00:06Z"},
-            {"event": "agent_started", "agent": "GeneratorAgent", "timestamp": "2026-01-31T10:00:07Z"},
-            {"event": "final_response", "answer": "Based on incident INC-1023, gateway timeouts are typically resolved by restarting the gateway service.", "citations": ["INC-1023"], "timestamp": "2026-01-31T10:00:08Z"}
-        ]
+        sent_event_ids[execution_id] = set()
+        max_wait = 120  # Maximum wait time in seconds
+        poll_interval = 0.5  # Poll every 500ms
+        elapsed = 0
 
-        for event in events:
-            yield f"data: {json.dumps(event)}\n\n"
-            await asyncio.sleep(0.5)  # Simulate timing
+        while elapsed < max_wait:
+            try:
+                # Get current execution state
+                execution = get_execution(execution_id)
+                
+                if not execution:
+                    yield f"data: {json.dumps({'error': 'Execution not found'})}\n\n"
+                    break
 
-        # Send completion event
-        yield f"data: {json.dumps({'event': 'execution_completed', 'execution_id': execution_id})}\n\n"
+                # Get all observability events for this execution
+                all_events = get_observability_events(limit=100)
+                execution_events = [e for e in all_events if e.get('execution_id') == execution_id]
+
+                # Stream new events
+                for event in execution_events:
+                    event_key = f"{event.get('timestamp')}_{event.get('event_type')}_{event.get('agent_name')}"
+                    
+                    if event_key not in sent_event_ids[execution_id]:
+                        sent_event_ids[execution_id].add(event_key)
+                        
+                        # Format event for frontend
+                        event_data = {
+                            "event": event.get('event_type', 'unknown'),
+                            "agent": event.get('agent_name'),
+                            "message": event.get('message'),
+                            "timestamp": event.get('timestamp')
+                        }
+                        yield f"data: {json.dumps(event_data)}\n\n"
+
+                # Check if execution is complete
+                if execution['status'] in ['completed', 'failed']:
+                    # Stream final response
+                    if execution.get('result'):
+                        try:
+                            result_data = json.loads(execution['result']) if isinstance(execution['result'], str) else execution['result']
+                            if isinstance(result_data, dict):
+                                final_response = result_data.get('final_response', '') or result_data.get('response', '')
+                            else:
+                                final_response = str(result_data)
+                        except:
+                            final_response = execution.get('result', '')
+                        
+                        # Stream the response content
+                        if final_response:
+                            yield f"data: {json.dumps({'type': 'response', 'final_response': final_response})}\n\n"
+
+                    # Send completion event
+                    yield f"data: {json.dumps({'status': 'completed', 'execution_id': execution_id})}\n\n"
+                    break
+
+                # Wait before polling again
+                await asyncio.sleep(poll_interval)
+                elapsed += poll_interval
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                break
+
+        # Cleanup
+        if execution_id in sent_event_ids:
+            del sent_event_ids[execution_id]
 
     return StreamingResponse(
         event_generator(),

@@ -1,0 +1,105 @@
+core_banking_api_contract_v2.txt
+Version: 2.8.0
+
+Build Date: 2026-01-15
+
+System: J-Cloud Core Banking API (JC-CBA)
+
+Base URL: https://api.jcloud-banking.internal/v2
+
+1. Payment Services (Scenario A Correlation)
+POST /payments/sepa/transfer
+Description: Initiates a SEPA Instant Credit Transfer within the EU.
+
+Parameters: X-Gateway-Node (Header, e.g., EU-CENTRAL-1)
+
+Request Body:
+
+JSON
+{
+  "correlation_id": "TX-EU-7782",
+  "sender_iban": "DE1234567890",
+  "receiver_iban": "FR0987654321",
+  "amount": 1250.00,
+  "currency": "EUR",
+  "compliance_check": "PSD2-SCA"
+}
+Response (202 Accepted): {"status": "PENDING", "trace_id": "TRC-9901-PAY"}
+
+GET /payments/reconcile/{batch_id}
+Description: Fetches reconciliation status for nightly clearing batches.
+
+Parameters: batch_id (Path)
+
+Response (200 OK): {"batch_id": "B-20260129", "status": "COMPLETED", "total_records": 14502}
+
+POST /payments/audit/log-sync
+Description: Internal endpoint to sync transaction logs to CephStore.
+
+Constraints: Requires JCENG-3818 quota synchronization.
+
+Request Body: {"log_payload": "string", "retention_policy": "7Y"}
+
+Response (507 Insufficient Storage): {"error": "QUOTA_EXCEEDED", "target": "CephStore_Node_01"}
+
+2. Authentication & Mobile (Scenario B Correlation)
+POST /auth/biometric/verify
+Description: Validates biometric tokens against the Secure Enclave/TEE.
+
+Request Body:
+
+JSON
+{
+  "token": "BIO_XYZ_999",
+  "sdk_version": "SDK-V3.4.1",
+  "device_id": "IPHONE-15-PRO",
+  "os_version": "iOS 19.1"
+}
+Response (401 Unauthorized): {"error_code": "BIO-FAIL-909", "message": "Handshake Mismatch"}
+
+POST /auth/mfa/sms-trigger
+Description: Triggers OTP via SMS gateway.
+
+Request Body: {"phone_number": "+447700900000", "template": "OTP_LOGIN"}
+
+Response (200 OK): {"delivery_id": "SMS-G7-TRK", "est_arrival_sec": 30}
+
+GET /auth/session/status
+Description: Checks if a JWT session is still active.
+
+Headers: Authorization: Bearer <token>
+
+Response (440 Session Expired): {"reason": "Inactivity_Background_Policy"}
+
+3. Account & Infrastructure Services
+GET /accounts/{account_id}/balance
+Description: Retrieves real-time balance.
+
+Response (200 OK): {"account_id": "ACT-1122", "balance": 45600.50, "currency": "EUR"}
+
+PATCH /infra/storage/quota
+Description: Adjusts storage quotas for microservices.
+
+Request Body: {"service": "CephStore", "new_limit_gb": 1024}
+
+Response (200 OK): {"status": "UPDATING", "effective_date": "2026-01-31"}
+
+POST /apply/credit
+Description: Endpoint for new credit card applications.
+
+Security Note: Subject to SQLi scanning (Ref: SEC-901).
+
+Request Body:
+
+JSON
+{
+  "AccountHolderName": "Marcus Aurelius",
+  "AnnualIncome": 85000,
+  "EmploymentStatus": "Full-Time"
+}
+Response (201 Created): {"application_id": "APP-8821"}
+
+GET /health/ready
+Description: Liveness/Readiness probe for the gateway.
+
+Response (503 Service Unavailable): {"status": "UNHEALTHY", "dependency": "Database_Timeout"}

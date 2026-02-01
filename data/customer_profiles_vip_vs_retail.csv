@@ -1,0 +1,5 @@
+customer_id,full_name,account_tier,relationship_manager,total_assets_eur,risk_score,last_login_device
+cust_8821,Marcus Aurelius,VIP_PLATINUM,J. Caesar,2500000.00,LOW,Desktop-Chrome
+cust_4402,Elena Rossi,RETAIL,None,4500.20,LOW,iPhone-15-Pro
+cust_9902,Unknown Actor,FLAGGED,None,0.00,HIGH,VPN-Endpoint
+cust_1122,John Doe,RETAIL,None,1200.50,MEDIUM,Android-Samsung-S24

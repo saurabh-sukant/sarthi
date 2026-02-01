@@ -1,0 +1,8 @@
+# IP - - [Date] "Request" Status Bytes "Referer" "User-Agent"
+10.45.2.19 - - [30/Jan/2026:09:15:01 +0100] "POST /api/v2/payments/sepa/transfer HTTP/1.1" 500 142 "-" "JCloud-App/4.2 (iOS)"
+10.45.2.22 - - [30/Jan/2026:09:15:02 +0100] "POST /api/v2/payments/sepa/transfer HTTP/1.1" 500 142 "-" "JCloud-App/4.2 (Android)"
+192.168.44.11 - - [30/Jan/2026:09:16:15 +0100] "GET /api/v2/apply/credit?name=Marcus' UNION SELECT 1,database(),3-- HTTP/1.1" 200 4096 "-" "Mozilla/5.0 (Kali-Linux)"
+10.45.2.55 - - [30/Jan/2026:09:17:00 +0100] "GET /api/v2/accounts/balance HTTP/1.1" 503 98 "-" "Chrome/121.0"
+88.21.12.99 - - [30/Jan/2026:09:18:22 +0100] "POST /api/v2/auth/biometric/verify HTTP/1.1" 401 56 "-" "JCloud-App/3.4.1 (iOS)"
+10.45.2.19 - - [30/Jan/2026:09:19:05 +0100] "POST /api/v2/payments/sepa/transfer HTTP/1.1" 502 0 "-" "JCloud-App/4.2 (iOS)"
+192.168.44.11 - - [30/Jan/2026:09:20:01 +0100] "POST /api/v2/apply/credit HTTP/1.1" 201 500 "-" "Python-Requests/2.31"

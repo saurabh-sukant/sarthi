@@ -1,0 +1,49 @@
+{
+  "organization": "J-Cloud Banking Operations",
+  "updated_at": "2026-01-01",
+  "departments": [
+    {
+      "name": "Core Platform Engineering",
+      "code": "JCENG",
+      "teams": [
+        {
+          "name": "SRE & Infrastructure",
+          "responsibilities": ["CephStore", "Kubernetes Clusters", "Audit Logging"],
+          "on_call_lead": "Lovekush Sharma",
+          "escalation_contact": "devops-dave@jcloud.internal",
+          "service_ownership": ["infra-storage", "log-aggregator"]
+        },
+        {
+          "name": "Payment Gateway Services",
+          "responsibilities": ["SEPA Switch", "SWIFT Integration", "Ledger Sync"],
+          "on_call_lead": "Ciaran Bunting",
+          "service_ownership": ["payment-processor-v4", "currency-exchange"]
+        }
+      ]
+    },
+    {
+      "name": "Digital Channels",
+      "code": "DIGI",
+      "teams": [
+        {
+          "name": "Mobile Experience",
+          "responsibilities": ["iOS App", "Android App", "Biometric SDK"],
+          "on_call_lead": "Sarah K.",
+          "service_ownership": ["mobile-auth-service", "notification-gateway"]
+        }
+      ]
+    },
+    {
+      "name": "Security Operations (SecOps)",
+      "code": "SEC",
+      "teams": [
+        {
+          "name": "Threat Intelligence",
+          "responsibilities": ["WAF Configuration", "Vulnerability Management", "PCI Compliance"],
+          "on_call_lead": "Alice Security (sec-alice)",
+          "service_ownership": ["waf-ingress", "fraud-detection-engine"]
+        }
+      ]
+    }
+  ]
+}

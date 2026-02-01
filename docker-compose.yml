@@ -1,14 +1,15 @@
 version: '3.8'
-
+ 
 services:
   sarthi-api:
     build: .
+    container_name: sarthi-api
     ports:
       - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DATABASE_URL=sqlite:///./sarthi.db
-      - CHROMA_DB_PATH=./chroma_db
+      - CHROMA_PATH=./chroma_db
       - SECRET_KEY=${SECRET_KEY}
     volumes:
       - ./data:/app/data
@@ -17,19 +18,39 @@ services:
       - chroma-db
     networks:
       - sarthi-network
-
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; import http.client; conn = http.client.HTTPConnection('127.0.0.1', 8000); conn.request('GET', '/api/agents/'); res = conn.getresponse(); sys.exit(0) if res.status == 200 else sys.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+ 
+  sarthi-frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000
+    container_name: sarthi-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      sarthi-api:
+        condition: service_healthy
+    networks:
+      - sarthi-network
+ 
   chroma-db:
     image: chromadb/chroma:latest
+    container_name: chroma-db
     ports:
       - "8001:8000"
     volumes:
       - chroma_data:/chroma/chroma
     networks:
       - sarthi-network
-
+ 
 volumes:
   chroma_data:
-
+ 
 networks:
   sarthi-network:
     driver: bridge

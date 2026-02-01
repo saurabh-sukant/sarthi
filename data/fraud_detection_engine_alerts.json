@@ -1,0 +1,38 @@
+{
+  "alerts": [
+    {
+      "alert_id": "FRD-2026-001",
+      "timestamp": "2026-01-30T09:15:30Z",
+      "rule_triggered": "VELOCITY_CHECK_HIGH",
+      "severity": "MEDIUM",
+      "details": {
+        "user_id": "cust_8821",
+        "event_count": 15,
+        "time_window_sec": 60,
+        "description": "User attempted 'SEPA Transfer' 15 times in 1 minute."
+      }
+    },
+    {
+      "alert_id": "FRD-2026-002",
+      "timestamp": "2026-01-30T09:16:00Z",
+      "rule_triggered": "DEVICE_FINGERPRINT_MISMATCH",
+      "severity": "HIGH",
+      "details": {
+        "user_id": "cust_9902",
+        "description": "Login attempt from known malicious IP range (VPN) coincident with high error rate."
+      }
+    },
+    {
+      "alert_id": "FRD-2026-003",
+      "timestamp": "2026-01-30T09:16:15Z",
+      "rule_triggered": "SQL_INJECTION_PATTERN",
+      "severity": "CRITICAL",
+      "details": {
+        "endpoint": "/apply/credit",
+        "payload_snippet": "UNION SELECT 1...",
+        "source_ip": "192.168.44.11",
+        "action_taken": "LOGGED_ONLY (Mode: Monitoring)"
+      }
+    }
+  ]
+}
