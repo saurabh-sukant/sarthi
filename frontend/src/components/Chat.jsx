@@ -18,18 +18,24 @@ export default function Chat() {
     if (!input.trim()) return
     const text = input.trim()
     setMessages((m) => [...m, { id: Date.now(), role: 'user', text }])
-    setInput('')
-    setLoading(true)
-
     try {
       const res = await submitChatQuery(text)
+      // Show the response field immediately if present
+      if (res.response) {
+        setMessages((m) => [...m, { id: Date.now() + 2, role: 'assistant', text: res.response }])
+      } else if (res.answer) {
+        setMessages((m) => [...m, { id: Date.now() + 2, role: 'assistant', text: res.answer }])
+      }
+      // If execution_id is present, listen for SSE updates (may update/append new answer)
       if (res.execution_id) {
         const es = createEventSource(res.execution_id)
         es.onmessage = (ev) => {
           try {
             const d = JSON.parse(ev.data)
-            if (d.event === 'final_response' && d.answer) {
-              setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', text: d.answer }])
+            // Accept both 'final_response' and 'response' fields from SSE
+            const answer = d.final_response || d.response || d.answer
+            if ((d.event === 'final_response' || d.type === 'response' || d.status === 'completed') && answer) {
+              setMessages((m) => [...m, { id: Date.now() + 1, role: 'assistant', text: answer }])
               es.close()
               setLoading(false)
             }
@@ -41,8 +47,6 @@ export default function Chat() {
           es.close()
           setLoading(false)
         }
-      } else if (res.answer) {
-        setMessages((m) => [...m, { id: Date.now() + 2, role: 'assistant', text: res.answer }])
       }
     } catch (err) {
       setMessages((m) => [...m, { id: Date.now() + 3, role: 'assistant', text: 'Error: failed to send query' }])

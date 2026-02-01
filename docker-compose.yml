@@ -1,5 +1,5 @@
 version: '3.8'
-
+ 
 services:
   sarthi-api:
     build: .
@@ -19,24 +19,25 @@ services:
     networks:
       - sarthi-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/agents"]
+      test: ["CMD", "python", "-c", "import sys; import http.client; conn = http.client.HTTPConnection('127.0.0.1', 8000); conn.request('GET', '/api/agents/'); res = conn.getresponse(); sys.exit(0) if res.status == 200 else sys.exit(1)"]
       interval: 10s
       timeout: 5s
       retries: 5
-
+ 
   sarthi-frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000
     container_name: sarthi-frontend
     ports:
       - "5173:5173"
-    environment:
-      - VITE_API_BASE_URL=http://sarthi-api:8000
     depends_on:
       sarthi-api:
         condition: service_healthy
     networks:
       - sarthi-network
-
+ 
   chroma-db:
     image: chromadb/chroma:latest
     container_name: chroma-db
@@ -46,10 +47,10 @@ services:
       - chroma_data:/chroma/chroma
     networks:
       - sarthi-network
-
+ 
 volumes:
   chroma_data:
-
+ 
 networks:
   sarthi-network:
     driver: bridge
