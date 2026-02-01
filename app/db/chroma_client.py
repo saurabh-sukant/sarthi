@@ -1,4 +1,5 @@
 import chromadb
+import uuid
 from typing import List, Dict, Any
 from app.config import settings
 
@@ -14,7 +15,7 @@ async def init_chroma_collections():
 async def store_document_embeddings(chunks: List[str], embeddings: List[List[float]], metadata: List[Dict[str, Any]] = None):
     """Store document chunks with embeddings."""
     collection = client.get_or_create_collection("documents")
-    ids = [f"doc_{i}" for i in range(len(chunks))]
+    ids = [f"doc_{uuid.uuid4()}" for _ in range(len(chunks))]
     if metadata is None:
         metadata = [{}] * len(chunks)
     collection.add(ids=ids, embeddings=embeddings, documents=chunks, metadatas=metadata)
@@ -28,7 +29,7 @@ async def search_documents(query_embedding: List[float], n_results: int = 5) -> 
 async def store_memory_embeddings(memories: List[str], embeddings: List[List[float]], memory_types: List[str]):
     """Store memory items with embeddings."""
     collection = client.get_or_create_collection("memory")
-    ids = [f"mem_{i}" for i in range(len(memories))]
+    ids = [f"mem_{uuid.uuid4()}" for _ in range(len(memories))]
     metadata = [{"type": memory_type} for memory_type in memory_types]
     collection.add(ids=ids, embeddings=embeddings, documents=memories, metadatas=metadata)
 

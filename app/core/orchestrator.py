@@ -25,6 +25,7 @@ class OrchestratorState(TypedDict):
     retrieved_docs: Any
     retrieved_memory: Any
     reasoning_summary: str
+    correlated_memories: list
 
 class Orchestrator:
     def __init__(self):
@@ -38,16 +39,20 @@ class Orchestrator:
         # Add nodes
         graph.add_node("input_guardrail", self._input_guardrail)
         graph.add_node("retrieval", self._retrieval)
+        graph.add_node("memory_correlation", self._memory_correlation)
         graph.add_node("reasoning", self._reasoning)
         graph.add_node("generation", self._generation)
+        graph.add_node("memory_persistence", self._memory_persistence)
         graph.add_node("output_guardrail", self._output_guardrail)
 
         # Define edges
         graph.set_entry_point("input_guardrail")
         graph.add_edge("input_guardrail", "retrieval")
-        graph.add_edge("retrieval", "reasoning")
+        graph.add_edge("retrieval", "memory_correlation")
+        graph.add_edge("memory_correlation", "reasoning")
         graph.add_edge("reasoning", "generation")
-        graph.add_edge("generation", "output_guardrail")
+        graph.add_edge("generation", "memory_persistence")
+        graph.add_edge("memory_persistence", "output_guardrail")
         graph.add_edge("output_guardrail", END)
 
         return graph
@@ -78,7 +83,8 @@ class Orchestrator:
                 "masked_query": query,
                 "retrieved_docs": {},
                 "retrieved_memory": {},
-                "reasoning_summary": ""
+                "reasoning_summary": "",
+                "correlated_memories": []
             }
 
             # FIX 1: Use ainvoke (Async Invoke) and await it
@@ -140,14 +146,32 @@ class Orchestrator:
         log_observability_event(datetime.utcnow(), "agent_completed", "RetrievalAgent", "Retrieval completed", execution_id=execution_id)
         return state
 
+    async def _memory_correlation(self, state: OrchestratorState) -> OrchestratorState:
+        """Read and correlate past memories with retrieved documents."""
+        execution_id = state["execution_id"]
+        query = state.get("masked_query", state.get("query"))
+        
+        log_observability_event(datetime.utcnow(), "agent_started", "MemoryAgent", "Correlating memories with retrieved data", execution_id=execution_id)
+
+        memory_agent = MemoryAgent()
+        
+        # Read memories related to the query
+        correlated_memories = await memory_agent.read_memory(query=query, top_k=3)
+        
+        state["correlated_memories"] = correlated_memories
+        
+        log_observability_event(datetime.utcnow(), "agent_completed", "MemoryAgent", f"Correlated {len(correlated_memories)} memories", execution_id=execution_id)
+        return state
+
     async def _reasoning(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
         query = state.get("masked_query", state.get("query"))
         docs = state.get("retrieved_docs", {})
         memory = state.get("retrieved_memory", {})
+        correlated_memories = state.get("correlated_memories", [])
         log_observability_event(datetime.utcnow(), "agent_started", "ReasoningAgent", "Starting reasoning", execution_id=execution_id)
 
-        context = self._combine_context(docs, memory)
+        context = self._combine_context(docs, memory, correlated_memories)
         reasoning_prompt = f"Query: {query}\nContext: {context[:2000]}\nProvide a brief reasoning summary."
 
         # Use async OpenAI call if available, or wrap in executor if blocking
@@ -199,6 +223,44 @@ class Orchestrator:
         log_observability_event(datetime.utcnow(), "agent_completed", "GeneratorAgent", "Response generation completed", execution_id=execution_id)
         return state
 
+    async def _memory_persistence(self, state: OrchestratorState) -> OrchestratorState:
+        """Store insights and learnings from the interaction as memories."""
+        execution_id = state["execution_id"]
+        query = state.get("masked_query", state.get("query"))
+        reasoning = state.get("reasoning_summary", "")
+        generation = state.get("final_response", "")
+        
+        log_observability_event(datetime.utcnow(), "agent_started", "MemoryAgent", "Persisting interaction to memory", execution_id=execution_id)
+        
+        memory_agent = MemoryAgent()
+        
+        # Store the reasoning as semantic memory
+        if reasoning:
+            try:
+                reasoning_memory = f"Query: {query[:100]}...\nReasoning: {reasoning[:200]}"
+                await memory_agent.write_memory(
+                    content=reasoning_memory,
+                    memory_type="semantic",
+                    source="orchestrator_reasoning"
+                )
+            except Exception as e:
+                log_observability_event(datetime.utcnow(), "agent_error", "MemoryAgent", f"Failed to store reasoning: {str(e)}", execution_id=execution_id)
+        
+        # Store the final response as episodic memory
+        if generation:
+            try:
+                episodic_memory = f"Query: {query}\nResponse: {generation[:200]}"
+                await memory_agent.write_memory(
+                    content=episodic_memory,
+                    memory_type="episodic",
+                    source="orchestrator_generation"
+                )
+            except Exception as e:
+                log_observability_event(datetime.utcnow(), "agent_error", "MemoryAgent", f"Failed to store episodic memory: {str(e)}", execution_id=execution_id)
+        
+        log_observability_event(datetime.utcnow(), "agent_completed", "MemoryAgent", "Interaction persisted to memory", execution_id=execution_id)
+        return state
+
     async def _output_guardrail(self, state: OrchestratorState) -> OrchestratorState:
         execution_id = state["execution_id"]
         response = state.get("final_response", "")
@@ -217,14 +279,24 @@ class Orchestrator:
         log_observability_event(datetime.utcnow(), "agent_completed", "GuardrailAgent", "Output validation completed", execution_id=execution_id)
         return state
 
-    def _combine_context(self, docs: Dict, memory: Dict) -> str:
-        """Combine retrieved documents and memory into context string."""
+    def _combine_context(self, docs: Dict, memory: Dict, correlated_memories: list = None) -> str:
+        """Combine retrieved documents, memory, and correlated historical memories into context string."""
         context_parts = []
-        # Ensure docs/memory are dicts before accessing
+        
+        # Add retrieved documents
         if isinstance(docs, dict) and docs.get("documents"):
             for i, doc in enumerate(docs["documents"][0]):
                 context_parts.append(f"Document {i+1}: {doc}")
+        
+        # Add retrieved memory
         if isinstance(memory, dict) and memory.get("documents"):
             for i, mem in enumerate(memory["documents"][0]):
                 context_parts.append(f"Memory {i+1}: {mem}")
+        
+        # Add correlated historical memories
+        if correlated_memories:
+            for i, mem in enumerate(correlated_memories):
+                content = mem.get("content") if isinstance(mem, dict) else mem
+                context_parts.append(f"Historical Memory {i+1}: {content}")
+        
         return "\n".join(context_parts)
